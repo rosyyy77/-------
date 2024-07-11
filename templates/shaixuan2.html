@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Search and Display Leaders</title>
+    <style>
+        button[id="submitButton"]{
+            width: 80px;
+            height: 80px;
+        }
+        #modalText {
+            width: 90%; /* 设置输入框的宽度为100%，以适应窗口宽度 */
+            height: 470px; /* 设置输入框的高度为200px，以显示更多行文本 */
+            overflow: auto; /* 允许内容超出输入框大小时出现滚动条 */
+            word-wrap: break-word; /* 允许单词太长时拆分换行 */
+        }
+        /* 增加输入框的行高 */
+        td input[type="text"] {
+            line-height: 1.5; /* 增加行高 */
+        }
+        /* 使用 <textarea> 元素 */
+        td textarea {
+            width: 100%; /* 设置输入框的宽度为100%，以适应单元格 */
+            height: 100px; /* 增加高度 */
+        }
+
+        input[id="departmentName"]{
+            width: 20%;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed; /* 固定表格布局 */
+        }
+
+        table, th, td {
+            border: 1px solid black;
+        }
+        table[id="leadersTable"]{
+            background-color: #e3e7ec;
+        }
+
+        th, td {
+            padding: 7px;
+            text-align: left;
+            overflow: hidden; /* 隐藏溢出的内容 */
+            white-space: nowrap; /* 防止文本换行 */
+        }
+
+        /* 增加输入框的高度 */
+        td input[type="text"] {
+            height: 100px; /* 增加高度 */
+        }
+
+        /* 调整模态窗口的样式 */
+        .modal-content {
+            height: 200px; /* 增加模态窗口的高度 */
+        }
+
+
+        th {
+            width: 20%; /* 为表头设置固定宽度或百分比 */
+        }
+
+        td {
+            width: 40%; /* 为单元格设置更大的宽度 */
+        }
+        /* 其他样式 */
+        .modal {
+            display: none; /* 默认不显示 */
+            position: fixed; /* 固定定位 */
+            z-index: 1; /* 确保模态窗口在最上层 */
+            left: 0;
+            top: 0;
+            width: 100%; /* 宽度100% */
+            height: 100%; /* 高度100% */
+            overflow: auto; /* 允许滚动 */
+            /*background-color: rgb(222, 222, 22); !* 背景色 *!*/
+            background-color: rgb(234, 217, 217, 0.4); /* 背景色带透明度 */
+        }
+
+        .modal-content {
+            /*background-color: #fefefe;*/
+            margin: 15% auto; /* 15%从顶部和自动左边距 */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 70%; /* 宽度80% */
+            height: 510px; /* 增加模态窗口的高度 */
+            background-color: rgb(166, 210, 225);
+
+        }
+
+    </style>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+</head>
+<body>
+<h1>Search</h1>
+<div>
+    <label for="personName">姓名:</label>
+    <input type="text" id="personName">
+    <button onclick="searchPerson()">搜索</button>
+</div>
+<div>
+    <label for="departmentName">部门名称:</label>
+    <input type="text" id="departmentName">
+    <button onclick="searchDepartment()">搜索</button>
+</div>
+<div>
+    <label for="departmentSelect">选择部门:</label>
+    <select id="departmentSelect" onchange="fetchLeaders()">
+        <!-- 部门列表将通过JavaScript动态生成 -->
+    </select>
+</div>
+<table id="leadersTable" border="1">
+    <thead>
+    <tr>
+        <th>照片</th>
+        <th>表内ID</th>
+        <th>姓名</th>
+        <th>部门</th>
+        <th>职务</th>
+        <th>性别</th>
+        <th>生日</th>
+        <th>民族</th>
+        <th>籍贯</th>
+        <th>加入工作时间</th>
+        <th>入党时间</th>
+        <th>简历</th>
+        <th>履历</th>
+        <th>学历</th>
+        <!-- Add other columns as needed -->
+    </tr>
+    </thead>
+    <tbody>
+    <!-- Data will be inserted here -->
+    </tbody>
+</table>
+
+<!--<div id="myModal" class="modal">-->
+<!--    <div class="modal-content">-->
+<!--        <input id="modalText">-->
+<!--        <button id="submitButton">提交</button>-->
+<!--    </div>-->
+<!--</div>-->
+
+<div id="myModal" class="modal">
+    <div class="modal-content">
+        <textarea id="modalText"></textarea>
+        <button id="submitButton">提交</button>
+    </div>
+</div>
+
+<script>
+    // 初始函数，用于从后端获取部门列表并填充下拉框
+    (function () {
+        fetch('/departments') // 假设这是获取部门列表的API端点
+            .then(response => response.json())
+            .then(departments => {
+                populateDepartments(departments);
+            })
+            .catch(error => console.error('Error fetching departments:', error));
+    })();
+
+    // 填充部门下拉框的函数
+    function populateDepartments(departments) {
+        var select = document.getElementById('departmentSelect');
+        departments.forEach(departmentName => { // 直接使用部门名称
+            var option = document.createElement('option');
+            option.value = departmentName; // 部门名称作为value
+            option.textContent = departmentName; // 部门名称作为文本内容
+            select.appendChild(option);
+        });
+    }
+
+    // 根据选中部门获取领导信息的函数
+    function fetchLeaders() {
+        var departmentName = document.getElementById('departmentSelect').value;
+        fetch(`/department?department=${departmentName}`) // 假设这是获取领导信息的API端点
+            .then(response => response.json())
+            .then(leaders => {
+                displayLeaders(leaders);
+            })
+            .catch(error => console.error('Error fetching leaders:', error));
+    }
+
+    function searchPerson() {
+        var personName = $('#personName').val();
+        $.getJSON('/person?person=' + encodeURIComponent(personName), function (data) {
+            displayLeaders(data);
+        });
+    }
+
+    function searchDepartment() {
+        var departmentName = $('#departmentName').val();
+        $.getJSON('/department?department=' + encodeURIComponent(departmentName), function (data) {
+            displayLeaders(data);
+        });
+    }
+
+    function displayLeaders(data) {
+        const table = $('#leadersTable > tbody');
+        table.empty(); // 清空之前的表格数据
+        // 使用数组来存储每一行的 HTML
+        const rows = data.map(function (leader) {
+            // 使用模板字符串来插入变量
+            return `<tr>
+                        <td><img src="http://dct.lingxutech.com:802/phone/anhui/${leader.picurl}" width="100" height="100"></td>
+                        <td id="dataId" >${leader.id}</td>
+                        <td >${leader.personname}</td>
+                        <td>${leader.orgname}</td>
+                        <td>${leader.duty}</td>
+                        <td>${leader.gender}</td>
+                        <td>${leader.birthday}</td>
+                        <td>${leader.nation}</td>
+                        <td>${leader.nativeplace}</td>
+                        <td>${leader.joinworktime}</td>
+                        <td>${leader.joinpartytime}</td>
+                        <td>${leader.shortintroduction}</td>
+                        <td>${leader.resume}</td>
+                        <td>${leader.edulevel}</td>
+                    </tr> `;
+        }).join(''); // 将所有行合并成一个字符串
+
+        // 一次性将所有行添加到表格中
+        table.html(rows);
+    }
+
+    // 获取模态窗口和关闭按钮的元素
+    const modal = document.getElementById("myModal");
+
+    // 当点击模态窗口（id为myModal）以外的地方时，关闭模态窗口
+    window.onclick = function (event) {
+        if (event.target === modal) {
+            closeModal();
+        }
+    };
+
+    // 显示模态窗口的函数
+    function showModal(text) {
+        var modalText = document.getElementById("modalText");
+        modalText.value = text; // 设置模态窗口中显示的文本
+        modal.style.display = "block"; // 显示模态窗口
+    }
+
+    // 关闭模态窗口的函数
+    function closeModal() {
+        modal.style.display = "none"; // 隐藏模态窗口
+    }
+
+    // 为表格单元格添加点击事件监听器
+    window.onload = function () {
+        var dataId = ''
+        var index = 0
+        var leadersTable = document.getElementById('leadersTable');
+        leadersTable.onclick = function (e) {
+            if (e.target.tagName === 'TD') {
+                dataId = e.target.parentElement.children[1].textContent
+                index = e.target.cellIndex
+                var details = e.target.textContent;
+                showModal(details);
+            }
+        };
+
+        var submitButton = document.getElementById('submitButton');
+        submitButton.onclick = function (e) {
+            //提交到数据库
+            var updateStr = modalText.value;
+            var updateData = {
+                dataId: dataId,
+                index: index,
+                updateStr: updateStr // 假设 modalText 是你要更新的文本输入框的 DOM 元素
+            };
+            console.log(updateData)
+            // var apiURL = 'https://yourbackend.com/api/update';
+            fetch('/update', {
+                method: 'POST', // 或者 'PUT'，取决于你的后端接口设计
+                headers: {
+                    'Content-Type': 'application/json',
+                    // 如果需要认证，可能还需要添加认证头部
+                    // 'Authorization': 'Bearer your-token-here'
+                },
+                body: JSON.stringify(updateData) // 将 JavaScript 对象转换为 JSON 字符串
+            })
+            .then(data => {
+                console.log('Success:', data);
+                // alert('更新成功！');
+                modal.style.display = "none"; // 隐藏模态窗口
+                searchDepartment(); // 假设这是刷新数据的函数
+                console.log('刷新');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        };
+    };
+</script>
+</body>
+</html>
